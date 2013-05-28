@@ -3,6 +3,101 @@ return (function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require
 var reqwest = require('reqwest'),
     qs = require('qs');
 
+var maki = { 'circle-stroked': true,
+  circle: true,
+  'square-stroked': true,
+  square: true,
+  'triangle-stroked': true,
+  triangle: true,
+  'star-stroked': true,
+  star: true,
+  cross: true,
+  'marker-stroked': true,
+  marker: true,
+  'religious-jewish': true,
+  'religious-christian': true,
+  'religious-muslim': true,
+  cemetery: true,
+  airport: true,
+  heliport: true,
+  rail: true,
+  'rail-underground': true,
+  'rail-above': true,
+  bus: true,
+  fuel: true,
+  parking: true,
+  'parking-garage': true,
+  airfield: true,
+  roadblock: true,
+  ferry: true,
+  harbor: true,
+  bicycle: true,
+  park: true,
+  park2: true,
+  museum: true,
+  lodging: true,
+  monument: true,
+  zoo: true,
+  garden: true,
+  campsite: true,
+  theatre: true,
+  'art-gallery': true,
+  pitch: true,
+  soccer: true,
+  'america-football': true,
+  tennis: true,
+  basketball: true,
+  baseball: true,
+  golf: true,
+  swimming: true,
+  cricket: true,
+  skiing: true,
+  school: true,
+  college: true,
+  library: true,
+  post: true,
+  'fire-station': true,
+  'town-hall': true,
+  police: true,
+  prison: true,
+  embassy: true,
+  beer: true,
+  restaurant: true,
+  cafe: true,
+  shop: true,
+  'fast-food': true,
+  bar: true,
+  bank: true,
+  grocery: true,
+  cinema: true,
+  pharmacy: true,
+  hospital: true,
+  danger: true,
+  industrial: true,
+  warehouse: true,
+  commercial: true,
+  building: true,
+  'place-of-worship': true,
+  'alcohol-shop': true,
+  logging: true,
+  'oil-well': true,
+  slaughterhouse: true,
+  dam: true,
+  water: true,
+  wetland: true,
+  disability: true,
+  telephone: true,
+  'emergency-telephone': true,
+  toilets: true,
+  'waste-basket': true,
+  music: true,
+  'land-use': true,
+  city: true,
+  town: true,
+  village: true,
+  farm: true };
+
+
 module.exports = window.L.LayerGroup.extend({
 
     API: 'https://api.foursquare.com/v2/venues/explore',
@@ -71,9 +166,15 @@ module.exports = window.L.LayerGroup.extend({
     },
 
     _maki: function(p) {
-        var cat = p.properties.categories[0].name.toLowerCase();
-        var supported = { bar: true };
-        return (cat in supported) ? cat : '';
+        var ic = ''
+        var cats = p.properties.categories;
+        for (var i = 0; i < cats.length; i++) {
+            console.log(cats[i].name);
+            if (maki[cats[i].name.toLowerCase()]) {
+                ic = cats[i].name.toLowerCase();
+            }
+        }
+        return ic;
     },
 
     _icon: function(fp) {
