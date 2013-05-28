@@ -31,7 +31,8 @@ module.exports = window.L.LayerGroup.extend({
             return L.marker([
                 p.geometry.coordinates[1],
                 p.geometry.coordinates[0]
-            ]).bindPopup('<h1><a target="_blank" href="' + p.properties.canonicalUrl + '">' +
+            ], { icon: this._icon(p) })
+            .bindPopup('<h1><a target="_blank" href="' + p.properties.canonicalUrl + '">' +
                 p.properties.name + '</a></h1>');
         }
 
@@ -42,7 +43,7 @@ module.exports = window.L.LayerGroup.extend({
 
                 if (!this._loadedIds[v.id]) {
 
-                    this.notesLayer.addData({
+                    this.notesLayer.addData(this._template({
                         type: 'Feature',
                         properties: v,
                         geometry: {
@@ -52,7 +53,7 @@ module.exports = window.L.LayerGroup.extend({
                                 v.location.lat
                             ]
                         }
-                    });
+                    }));
 
                     this._loadedIds[v.id] = true;
                 }
@@ -61,27 +62,39 @@ module.exports = window.L.LayerGroup.extend({
     },
 
     _template: function(p) {
-        p.title =
-            '<a href="http://www.openstreetmap.org/browse/note/' + p.id + '">Note #' +
-            p.id + '</a>';
-        p.description = '';
         p['marker-color'] = { closed: '11f', open: 'f11' }[p.status];
-        p['marker-symbol'] = { closed: 'circle-stroked', open: 'circle' }[p.status];
-
-        for (var i = 0; i < p.comments.length; i++) {
-            var user_link = p.comments[i].user ?
-                ('<a target="_blank" href="' + p.comments[i].user_url + '">' +
-                    p.comments[i].user + '</a>') : 'Anonymous';
-
-            p.description +=
-                '<div class="comment-meta">' +
-                user_link + ' - ' +
-                moment(p.comments[i].date).calendar() + ' ' +
-                '</div> ' + '<div class="comment-text">' +
-                p.comments[i].html + '</div>';
-        }
+        p['marker-symbol'] = this._maki(p);
 
         return p;
+    },
+
+    _maki: function(p) {
+        var cat = p.properties.categories[0].name.toLowerCase();
+        var supported = { bar: true };
+        return (cat in supported) ? cat : '';
+    },
+
+    _icon: function(fp) {
+        fp = fp || {};
+
+        var sizes = {
+                small: [20, 50],
+                medium: [30, 70],
+                large: [35, 90]
+            },
+            size = fp['marker-size'] || 'medium',
+            symbol = (fp['marker-symbol']) ? '-' + fp['marker-symbol'] : '',
+            color = (fp['marker-color'] || '7e7e7e').replace('#', '');
+
+        return L.icon({
+            iconUrl: 'http://a.tiles.mapbox.com/v3/marker/' +
+                'pin-' + size.charAt(0) + symbol + '+' + color +
+                // detect and use retina markers, which are x2 resolution
+                ((L.Browser.retina) ? '@2x' : '') + '.png',
+            iconSize: sizes[size],
+            iconAnchor: [sizes[size][0] / 2, sizes[size][1] / 2],
+            popupAnchor: [0, -sizes[size][1] / 2]
+        });
     },
 
     _load: function(map) {
