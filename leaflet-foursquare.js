@@ -21,7 +21,7 @@ module.exports = window.L.LayerGroup.extend({
         this.notesLayer = L.geoJson({
             type: 'FeatureCollection',
             features: []
-        }).addTo(map);
+        }, { pointToLayer: this._pointToLayer }).addTo(map);
 
         map
             .on('viewreset', this._load, this)
@@ -33,26 +33,31 @@ module.exports = window.L.LayerGroup.extend({
             return L.marker([
                 p.geometry.coordinates[1],
                 p.geometry.coordinates[0]
-            ], {
-                icon: this._icon(p.properties)
-            }).bindPopup('<h1>' + p.properties.title + '</h1>' +
-                '<div>' + p.properties.description + '</div>');
+            ]).bindPopup('<h1><a target="_blank" href="' + p.properties.canonicalUrl + '">' +
+                p.properties.name + '</a></h1>');
         }
 
         function loadSuccess(resp) {
             var g = resp.response.groups[0].items;
             for (var i = 0; i < g.length; i++) {
-                this.notesLayer.addData({
-                    type: 'Feature',
-                    properties: g[i].venue,
-                    geometry: {
-                        type: 'Point',
-                        coordinates: [
-                            g[i].venue.location.lng,
-                            g[i].venue.location.lat
-                        ]
-                    }
-                });
+                var v = g[i].venue;
+
+                if (!this._loadedIds[v.id]) {
+
+                    this.notesLayer.addData({
+                        type: 'Feature',
+                        properties: v,
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [
+                                v.location.lng,
+                                v.location.lat
+                            ]
+                        }
+                    });
+
+                    this._loadedIds[v.id] = true;
+                }
             }
         }
     },
