@@ -1,0 +1,22 @@
+{
+  "name": "leaflet-foursquare",
+  "version": "0.0.0",
+  "description": "foursquare venues in leaflet",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "keywords": [
+    "foursquare",
+    "leaflet",
+    "maps"
+  ],
+  "author": "Tom MacWright <tom@macwright.org>",
+  "license": "BSD",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "reqwest": "~0.8.0",
+    "qs": "~0.6.5"
+  }
+}
