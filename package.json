@@ -17,6 +17,7 @@
   "readmeFilename": "README.md",
   "dependencies": {
     "reqwest": "~0.8.0",
-    "qs": "~0.6.5"
+    "qs": "~0.6.5",
+    "pad": "0.0.4"
   }
 }

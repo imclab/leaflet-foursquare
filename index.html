@@ -63,11 +63,11 @@
             } else {
                 L.tileLayer('http://a.tiles.mapbox.com/v3/examples.map-20v6611k/{z}/{x}/{y}.png');
             }
-            var notesLayer = new leafletFoursquare(
-            '1QQZTGGNJKK5I4OIH1O5OXP0OZPYYH3ZBU4AJGQMO4SDP3OB',
-            'FGAMUQCSLBSS0MV0ETGUNTBVNRFAKBJKHWT2KA1AHKDOCGKV'
-            );
-            notesLayer.addTo(map);
+
+            (new leafletFoursquare({
+                client_id: '1QQZTGGNJKK5I4OIH1O5OXP0OZPYYH3ZBU4AJGQMO4SDP3OB',
+                client_secret: 'FGAMUQCSLBSS0MV0ETGUNTBVNRFAKBJKHWT2KA1AHKDOCGKV'
+            })).addTo(map);
         </script>
     </body>
 </html>

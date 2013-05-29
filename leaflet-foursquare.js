@@ -1,6 +1,7 @@
 (function(e){if("function"==typeof bootstrap)bootstrap("leafletfoursquare",e);else if("object"==typeof exports)module.exports=e();else if("function"==typeof define&&define.amd)define(e);else if("undefined"!=typeof ses){if(!ses.ok())return;ses.makeLeafletFoursquare=e}else"undefined"!=typeof window?window.leafletFoursquare=e():global.leafletFoursquare=e()})(function(){var define,ses,bootstrap,module,exports;
 return (function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
 var reqwest = require('reqwest'),
+    pad = require('pad'),
     qs = require('qs');
 
 var maki = { 'circle-stroked': true,
@@ -100,126 +101,121 @@ var maki = { 'circle-stroked': true,
 
 module.exports = window.L.LayerGroup.extend({
 
-    API: 'https://api.foursquare.com/v2/venues/explore',
-
     _loadedIds: {},
 
-    initialize: function(id, secret) {
-        this._id = id;
-        this._secret = secret;
-    },
+    initialize: function(options) {
+        if (!options.client_id || !options.client_secret) {
+            throw Error('Foursquare API ID and Secret required');
+        }
 
-    onAdd: function(map) {
-        this._map = map;
-        this._loadSuccess = L.bind(loadSuccess, this);
+        L.LayerGroup.prototype.initialize.call(this, options);
+        L.Util.setOptions(this, options);
+
         this._pointToLayer = L.bind(pointToLayer, this);
-        this.notesLayer = L.geoJson({
+
+        this.layer = L.geoJson({
             type: 'FeatureCollection',
             features: []
-        }, { pointToLayer: this._pointToLayer }).addTo(map);
+        } , { pointToLayer: this._pointToLayer });
 
-        map
-            .on('viewreset', this._load, this)
-            .on('moveend', this._load, this);
+        this.addLayer(this.layer);
 
-        this._load();
+        function makiIcon(f) {
+            var fp = f.properties || {};
+            var sizes = {
+                    small: [20, 50],
+                    medium: [30, 70],
+                    large: [35, 90]
+                },
+                size = fp['marker-size'] || 'medium',
+                symbol = (fp['marker-symbol']) ? '-' + fp['marker-symbol'] : '',
+                color = (fp['marker-color'] || '7e7e7e').replace('#', '');
+            return L.icon({
+                iconUrl: 'http://a.tiles.mapbox.com/v3/marker/' +
+                    'pin-' + size.charAt(0) + symbol + '+' + color +
+                    // detect and use retina markers, which are x2 resolution
+                    ((L.Browser.retina) ? '@2x' : '') + '.png',
+                iconSize: sizes[size],
+                iconAnchor: [sizes[size][0] / 2, sizes[size][1] / 2],
+                popupAnchor: [0, -sizes[size][1] / 2]
+            });
+        }
 
         function pointToLayer(p) {
             return L.marker([
                 p.geometry.coordinates[1],
                 p.geometry.coordinates[0]
-            ], { icon: this._icon(p) })
-            .bindPopup('<h1><a target="_blank" href="' + p.properties.canonicalUrl + '">' +
+            ], { icon: makiIcon(p) })
+            .bindPopup('<h1><a target="_blank" href="' +
+                p.properties.canonicalUrl + '">' +
                 p.properties.name + '</a></h1>');
         }
 
-        function loadSuccess(resp) {
+        this._loadSuccess = L.bind(function(resp) {
             var g = resp.response.groups[0].items;
             for (var i = 0; i < g.length; i++) {
                 var v = g[i].venue;
-
                 if (!this._loadedIds[v.id]) {
-
-                    this.notesLayer.addData(this._template({
+                    this.layer.addData(this._template({
                         type: 'Feature',
                         properties: v,
                         geometry: {
                             type: 'Point',
                             coordinates: [
-                                v.location.lng,
-                                v.location.lat
+                                v.location.lng, v.location.lat
                             ]
                         }
                     }));
-
                     this._loadedIds[v.id] = true;
                 }
             }
-        }
+        }, this);
+    },
+
+    onAdd: function(map) {
+        this._map = map;
+        map.on('viewreset', this._load, this)
+            .on('moveend', this._load, this);
+        this._load();
     },
 
     _template: function(p) {
-        p['marker-color'] = { closed: '11f', open: 'f11' }[p.status];
-        p['marker-symbol'] = this._maki(p);
-
+        function getMaki(p) {
+            var ic = '', cats = p.properties.categories;
+            for (var i = 0; i < cats.length; i++) {
+                if (maki[cats[i].name.toLowerCase()]) {
+                    ic = cats[i].name.toLowerCase();
+                }
+            }
+            return ic;
+        }
+        p.properties['marker-color'] = '#1b6db5';
+        p.properties['marker-symbol'] = getMaki(p);
         return p;
     },
 
-    _maki: function(p) {
-        var ic = ''
-        var cats = p.properties.categories;
-        for (var i = 0; i < cats.length; i++) {
-            console.log(cats[i].name);
-            if (maki[cats[i].name.toLowerCase()]) {
-                ic = cats[i].name.toLowerCase();
-            }
-        }
-        return ic;
-    },
+    _load: function() {
+        var API = 'https://api.foursquare.com/v2/venues/explore',
+            d = new Date();
 
-    _icon: function(fp) {
-        fp = fp || {};
-
-        var sizes = {
-                small: [20, 50],
-                medium: [30, 70],
-                large: [35, 90]
-            },
-            size = fp['marker-size'] || 'medium',
-            symbol = (fp['marker-symbol']) ? '-' + fp['marker-symbol'] : '',
-            color = (fp['marker-color'] || '7e7e7e').replace('#', '');
-
-        return L.icon({
-            iconUrl: 'http://a.tiles.mapbox.com/v3/marker/' +
-                'pin-' + size.charAt(0) + symbol + '+' + color +
-                // detect and use retina markers, which are x2 resolution
-                ((L.Browser.retina) ? '@2x' : '') + '.png',
-            iconSize: sizes[size],
-            iconAnchor: [sizes[size][0] / 2, sizes[size][1] / 2],
-            popupAnchor: [0, -sizes[size][1] / 2]
-        });
-    },
-
-    _load: function(map) {
-        function ll(map) {
-            return map.getCenter().lat + ',' +
-                map.getCenter().lng;
-        }
         reqwest({
-            url: this.API + '?' + qs.stringify({
-                ll: ll(this._map),
-                client_id: this._id,
-                client_secret: this._secret
+            url: API + '?' + qs.stringify({
+                ll: this._map.getCenter().lat + ',' + this._map.getCenter().lng,
+                v: '' + d.getFullYear() +
+                    pad(2, d.getMonth(), '0') +
+                    pad(2, d.getDate(), '0'),
+                client_id: this.options.client_id,
+                client_secret: this.options.client_secret
             }),
             type: 'json',
             success: this._loadSuccess,
-            crossOrigin: true,
-            error: function() { }
+            error: this._loadSuccess,
+            crossOrigin: true
         });
     }
 });
 
-},{"reqwest":2,"qs":3}],2:[function(require,module,exports){
+},{"reqwest":2,"pad":3,"qs":4}],2:[function(require,module,exports){
 (function(){/*!
   * Reqwest! A general purpose XHR connection manager
   * (c) Dustin Diaz 2013
@@ -780,7 +776,7 @@ module.exports = window.L.LayerGroup.extend({
 });
 
 })()
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 /**
  * Object#toString() ref for stringify().
  */
@@ -1168,6 +1164,35 @@ function decode(str) {
     return str;
   }
 }
+
+},{}],3:[function(require,module,exports){
+module.exports = require('./lib/pad')
+
+},{"./lib/pad":5}],5:[function(require,module,exports){
+// Generated by CoffeeScript 1.4.0
+
+module.exports = function(string, size, char) {
+  var i, pad, _i, _size;
+  if (char == null) {
+    char = ' ';
+  }
+  if (typeof string === 'number') {
+    _size = size;
+    size = string;
+    string = _size;
+  }
+  string = string.toString();
+  pad = '';
+  size = size - string.length;
+  for (i = _i = 0; 0 <= size ? _i < size : _i > size; i = 0 <= size ? ++_i : --_i) {
+    pad += char;
+  }
+  if (_size) {
+    return pad + string;
+  } else {
+    return string + pad;
+  }
+};
 
 },{}]},{},[1])(1)
 });
